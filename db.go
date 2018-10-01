@@ -32,7 +32,7 @@ var (
 	ErrUnavailable = errors.New("no database available")
 
 	// Local cached copy of a database downloaded from a URL.
-	defaultDB = filepath.Join(os.TempDir(), "freegeoip", "db.gz")
+	DefaultDB = filepath.Join(os.TempDir(), "freegeoip", "db.gz")
 
 	// MaxMindDB is the URL of the free MaxMind GeoLite2 database.
 	MaxMindDB = "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz"
@@ -130,7 +130,7 @@ func MaxMindUpdateURL(hostname, productID, userID, licenseKey string) (string, e
 // keeps a local copy on $TMPDIR.
 func OpenURL(url string, updateInterval, maxRetryInterval time.Duration) (*DB, error) {
 	db := &DB{
-		file:             defaultDB,
+		file:             DefaultDB,
 		notifyQuit:       make(chan struct{}),
 		notifyOpen:       make(chan string, 1),
 		notifyError:      make(chan error, 1),
