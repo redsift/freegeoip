@@ -234,16 +234,16 @@ func TestWatchMkdir(t *testing.T) {
 	mux.Handle("/testdata/", http.FileServer(http.Dir(".")))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
-	tmp := DefaultDB
-	DefaultDB = filepath.Join(os.TempDir(), "foobar", "db.gz")
+	tmp := defaultDB
+	defaultDB = filepath.Join(os.TempDir(), "foobar", "db.gz")
 	defer func() {
-		DefaultDB = tmp
+		defaultDB = tmp
 		time.Sleep(time.Second)
-		os.RemoveAll(filepath.Dir(DefaultDB))
+		os.RemoveAll(filepath.Dir(defaultDB))
 	}()
 	db, err := OpenURL(srv.URL+"/"+testFile, time.Hour, time.Minute)
 	if err != nil {
-		t.Fatalf("Failed to create %s: %s", filepath.Dir(DefaultDB), err)
+		t.Fatalf("Failed to create %s: %s", filepath.Dir(defaultDB), err)
 	}
 	db.Close()
 }
@@ -254,10 +254,10 @@ func TestWatchMkdirFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tmp := DefaultDB
-	DefaultDB = filepath.Join(basedir, "a", "db.gz")
+	tmp := defaultDB
+	defaultDB = filepath.Join(basedir, "a", "db.gz")
 	defer func() {
-		DefaultDB = tmp
+		defaultDB = tmp
 		time.Sleep(time.Second)
 		os.Chmod(basedir, 0755)
 		os.RemoveAll(basedir)
@@ -294,7 +294,7 @@ func TestLookupOnURL(t *testing.T) {
 	mux.Handle("/testdata/", http.FileServer(http.Dir(".")))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
-	os.Remove(DefaultDB) // In case it exists.
+	os.Remove(defaultDB) // In case it exists.
 	db, err := OpenURL(srv.URL+"/"+testFile, time.Hour, time.Minute)
 	if err != nil {
 		t.Fatal(err)
@@ -302,7 +302,7 @@ func TestLookupOnURL(t *testing.T) {
 	defer db.Close()
 	select {
 	case file := <-db.NotifyOpen():
-		if file != DefaultDB {
+		if file != defaultDB {
 			t.Fatal("Unexpected db file:", file)
 		}
 	case err := <-db.NotifyError():
