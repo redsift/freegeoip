@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/howeyc/fsnotify"
@@ -336,12 +337,54 @@ func (db *DB) makeDir() (dbdir string, err error) {
 }
 
 func (db *DB) renameFile(name string) error {
-	os.Rename(db.file, db.file+".bak") // Optional, might fail.
+	_ = os.Rename(db.file, db.file+".bak") // Optional, might fail.
 	_, err := db.makeDir()
 	if err != nil {
 		return err
 	}
-	return os.Rename(name, db.file)
+	// trying to rename first
+	err = os.Rename(name, db.file)
+	if err == nil {
+		return nil
+	}
+	if e, ok := err.(*os.LinkError); ok && e.Err != syscall.EXDEV {
+		return err
+	}
+	// cross-device link is not allowed; fall back to copy then rename
+	tmp := db.file + ".new"
+	defer func() {
+		_ = os.Remove(tmp)
+	}()
+	err = copyFile(name, tmp)
+	if err != nil {
+		return err
+	}
+	return os.Rename(tmp, db.file)
+}
+
+func copyFile(src, dst string) (err error) {
+	var in, out *os.File
+	defer func() {
+		if in != nil {
+			// don't really care about input
+			_ = in.Close()
+		}
+		if out != nil {
+			if e := out.Close(); err == nil && e != nil {
+				err = e
+			}
+		}
+	}()
+	if in, err = os.Open(src); err != nil {
+		return
+	}
+	if out, err = os.Create(dst); err != nil {
+		return
+	}
+	if _, err = io.Copy(out, in); err != nil {
+		return
+	}
+	return out.Sync()
 }
 
 // Date returns the UTC date the database file was last modified.
